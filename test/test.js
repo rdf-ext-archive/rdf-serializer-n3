@@ -1,7 +1,6 @@
 /* global describe, it */
-
 var assert = require('assert')
-var rdf = require('rdf-ext')()
+var rdf = require('rdf-ext')
 var N3Serializer = require('../')
 
 var simpleGraph = rdf.createGraph()
