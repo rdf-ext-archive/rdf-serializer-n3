@@ -134,4 +134,62 @@ describe('N3 serializer', function () {
       })
     })
   })
+
+  describe('example data', function () {
+    it('should serializer literal with language', function (done) {
+      var graph = rdf.createGraph()
+      var triple = rdf.createTriple(
+        rdf.createNamedNode('http://example.org/subject'),
+        rdf.createNamedNode('http://example.org/predicate'),
+        rdf.createLiteral('test', 'en'))
+
+      graph.add(triple)
+
+      N3Serializer.serialize(graph).then(function (nTriples) {
+        assert.equal(nTriples.trim(), '<http://example.org/subject> <http://example.org/predicate> "test"@en.')
+
+        done()
+      }).catch(function (error) {
+        done(error)
+      })
+    })
+
+    it('should serializer literal with none default datatype', function (done) {
+      var graph = rdf.createGraph()
+      var triple = rdf.createTriple(
+        rdf.createNamedNode('http://example.org/subject'),
+        rdf.createNamedNode('http://example.org/predicate'),
+        rdf.createLiteral('test', null, rdf.createNamedNode('http://example.org/datatype')))
+
+      graph.add(triple)
+
+      N3Serializer.serialize(graph).then(function (nTriples) {
+        assert.equal(nTriples.trim(), '<http://example.org/subject> <http://example.org/predicate> "test"^^<http://example.org/datatype>.')
+
+        done()
+      }).catch(function (error) {
+        done(error)
+      })
+    })
+
+    it('should serializer literal with datatype null', function (done) {
+      var graph = rdf.createGraph()
+      var triple = rdf.createTriple(
+        rdf.createNamedNode('http://example.org/subject'),
+        rdf.createNamedNode('http://example.org/predicate'),
+        rdf.createLiteral('test', null, rdf.createNamedNode('http://example.org/datatype')))
+
+      triple.object.datatype = null
+
+      graph.add(triple)
+
+      N3Serializer.serialize(graph).then(function (nTriples) {
+        assert.equal(nTriples.trim(), '<http://example.org/subject> <http://example.org/predicate> "test".')
+
+        done()
+      }).catch(function (error) {
+        done(error)
+      })
+    })
+  })
 })

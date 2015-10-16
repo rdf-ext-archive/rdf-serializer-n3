@@ -42,10 +42,10 @@ N3Serializer.prototype.serialize = function (graph, done) {
       } else if (node.interfaceName.toString() === 'BlankNode') {
         return '_:' + node.nominalValue
       } else {
-        if (node.datatype && !node.datatype.equals('http://www.w3.org/2001/XMLSchema#string')) {
-          return '"' + node.nominalValue + '"^^' + node.datatype.nominalValue
-        } else if (node.language) {
+        if (node.language) {
           return '"' + node.nominalValue + '"@' + node.language
+        } else if (node.datatype && !node.datatype.equals('http://www.w3.org/2001/XMLSchema#string')) {
+          return '"' + node.nominalValue + '"^^' + node.datatype.nominalValue
         } else {
           return '"' + node.nominalValue + '"'
         }
