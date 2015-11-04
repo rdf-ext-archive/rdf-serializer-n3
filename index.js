@@ -27,7 +27,7 @@ N3Serializer.prototype.serialize = function (graph, done) {
       // TODO: where do we get the right RDF Environment from?
       Object.keys(rdf.prefixes).forEach(function (prefix) {
         if (typeof rdf.prefixes[prefix] !== 'string') {
-          return;
+          return
         }
 
         writerOptions.prefixes[prefix] = rdf.prefixes[prefix]
