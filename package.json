@@ -1,21 +1,22 @@
 {
   "name": "rdf-serializer-n3",
   "version": "0.3.0",
-  "description": "N3 serializer that follows the RDF Interface specification",
+  "description": "N3 serializer that implements the RDFJS Sink interface",
   "main": "index.js",
   "scripts": {
-    "lint": "standard",
-    "test": "node_modules/.bin/mocha"
+    "test": "standard && mocha"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rdf-ext/rdf-parser-n3.git"
+    "url": "git://github.com/rdf-ext/rdf-serializer-n3.git"
   },
   "keywords": [
-    "rdf-serializer",
     "rdf",
-    "linked",
-    "data"
+    "rdfjs",
+    "rdf-ext",
+    "serializer",
+    "n3",
+    "stream"
   ],
   "author": "Thomas Bergwinkl <bergi@axolotlfarm.org> (https://www.bergnet.org/people/bergi/card#me)",
   "license": "MIT",
@@ -24,12 +25,13 @@
   },
   "homepage": "https://github.com/rdf-ext/rdf-serializer-n3",
   "dependencies": {
-    "inherits": "^2.0.1",
-    "n3": "^0.4.5",
-    "rdf-serializer-abstract": "^0.3.0"
+    "n3": "^0.11.2",
+    "rdf-sink": "^1.0.1",
+    "readable-stream": "^2.2.6"
   },
   "devDependencies": {
-    "mocha": "^2.3.3",
-    "rdf-ext": "^0.3.0"
+    "mocha": "^5.0.2",
+    "rdf-ext": "^1.0.0",
+    "standard": "^11.0.0"
   }
 }

@@ -1,195 +1,161 @@
 /* global describe, it */
-var assert = require('assert')
-var rdf = require('rdf-ext')
-var N3Serializer = require('../')
 
-var simpleGraph = rdf.createGraph()
+const assert = require('assert')
+const rdf = require('rdf-ext')
+const sinkTest = require('rdf-sink/test')
+const N3Serializer = require('..')
 
-simpleGraph.add(rdf.createTriple(
-  rdf.createNamedNode('http://example.org/subject'),
-  rdf.createNamedNode('http://example.org/predicate'),
-  rdf.createLiteral('object')
-))
+function streamToString (stream) {
+  const content = []
 
-var simpleGraphNT = '<http://example.org/subject> <http://example.org/predicate> "object".'
+  stream.on('data', chunk => {
+    content.push(chunk)
+  })
 
-// clear prefix map
-delete rdf.prefixes.owl
-delete rdf.prefixes.rdf
-delete rdf.prefixes.rdfa
-delete rdf.prefixes.rdfs
-delete rdf.prefixes.xhv
-delete rdf.prefixes.xsd
+  return rdf.waitFor(stream).then(() => {
+    return content.join('')
+  })
+}
 
-describe('N3 serializer', function () {
-  describe('instance API', function () {
-    describe('callback API', function () {
-      it('should be supported', function (done) {
-        var serializer = new N3Serializer()
+describe('rdf-serializer-n3', () => {
+  sinkTest(N3Serializer, {readable: true})
 
-        Promise.resolve(new Promise(function (resolve, reject) {
-          serializer.serialize(simpleGraph, function (error, nTriples) {
-            if (error) {
-              reject(error)
-            } else {
-              resolve(nTriples)
-            }
-          })
-        })).then(function (nTriples) {
-          assert.equal(nTriples.trim(), simpleGraphNT)
+  it('should serialize incoming quads', () => {
+    const quad = rdf.quad(
+      rdf.namedNode('http://example.org/subject'),
+      rdf.namedNode('http://example.org/predicate'),
+      rdf.literal('object'))
 
-          done()
-        }).catch(function (error) {
-          done(error)
-        })
-      })
-    })
+    const input = rdf.dataset([quad]).toStream()
 
-    describe('Promise API', function () {
-      it('should be supported', function (done) {
-        var serializer = new N3Serializer()
+    const expected = '<http://example.org/subject> <http://example.org/predicate> "object".\n'
 
-        serializer.serialize(simpleGraph).then(function (nTriples) {
-          assert.equal(nTriples.trim(), simpleGraphNT)
+    const serializer = new N3Serializer()
+    const stream = serializer.import(input)
 
-          done()
-        }).catch(function (error) {
-          done(error)
-        })
-      })
-    })
-
-    describe('Stream API', function () {
-      it('should be supported', function (done) {
-        var serializer = new N3Serializer()
-        var nTriples
-
-        serializer.stream(simpleGraph).on('data', function (data) {
-          nTriples = data
-        }).on('end', function () {
-          if (!nTriples) {
-            done('no data streamed')
-          } else if (nTriples.trim() !== simpleGraphNT) {
-            done('wrong output')
-          } else {
-            done()
-          }
-        }).on('error', function (error) {
-          done(error)
-        })
-      })
+    return streamToString(stream).then(actual => {
+      assert.equal(actual, expected)
     })
   })
 
-  describe('static API', function () {
-    describe('callback API', function () {
-      it('should be supported', function (done) {
-        Promise.resolve(new Promise(function (resolve, reject) {
-          N3Serializer.serialize(simpleGraph, function (error, nTriples) {
-            if (error) {
-              reject(error)
-            } else {
-              resolve(nTriples)
-            }
-          })
-        })).then(function (nTriples) {
-          assert.equal(nTriples.trim(), simpleGraphNT)
+  it('should handle prefixes', () => {
+    const quad = rdf.quad(
+      rdf.namedNode('http://example.org/subject'),
+      rdf.namedNode('http://example.org/predicate'),
+      rdf.literal('object'))
 
-          done()
-        }).catch(function (error) {
-          done(error)
-        })
-      })
-    })
+    const input = rdf.dataset([quad]).toStream()
 
-    describe('Promise API', function () {
-      it('should be supported', function (done) {
-        N3Serializer.serialize(simpleGraph).then(function (nTriples) {
-          assert.equal(nTriples.trim(), simpleGraphNT)
+    const expected = '' +
+      '@prefix ex: <http://example.org/>.\n' +
+      '\n' +
+      'ex:subject ex:predicate "object".\n'
 
-          done()
-        }).catch(function (error) {
-          done(error)
-        })
-      })
-    })
+    const serializer = new N3Serializer()
+    const stream = serializer.import(input)
 
-    describe('Stream API', function () {
-      it('should be supported', function (done) {
-        var nTriples
+    input.emit('prefix', 'ex', 'http://example.org/')
 
-        N3Serializer.stream(simpleGraph).on('data', function (data) {
-          nTriples = data
-        }).on('end', function () {
-          if (!nTriples) {
-            done('no data streamed')
-          } else if (nTriples.trim() !== simpleGraphNT) {
-            done('wrong output')
-          } else {
-            done()
-          }
-        }).on('error', function (error) {
-          done(error)
-        })
-      })
+    return streamToString(stream).then(actual => {
+      assert.equal(actual, expected)
     })
   })
 
-  describe('example data', function () {
-    it('should serializer literal with language', function (done) {
-      var graph = rdf.createGraph()
-      var triple = rdf.createTriple(
-        rdf.createNamedNode('http://example.org/subject'),
-        rdf.createNamedNode('http://example.org/predicate'),
-        rdf.createLiteral('test', 'en'))
+  it('should handle Literals with language', () => {
+    const quad = rdf.quad(
+      rdf.namedNode('http://example.org/subject'),
+      rdf.namedNode('http://example.org/predicate'),
+      rdf.literal('object', 'en'))
 
-      graph.add(triple)
+    const input = rdf.dataset([quad]).toStream()
 
-      N3Serializer.serialize(graph).then(function (nTriples) {
-        assert.equal(nTriples.trim(), '<http://example.org/subject> <http://example.org/predicate> "test"@en.')
+    const expected = '<http://example.org/subject> <http://example.org/predicate> "object"@en.\n'
 
-        done()
-      }).catch(function (error) {
-        done(error)
-      })
+    const serializer = new N3Serializer()
+    const stream = serializer.import(input)
+
+    return streamToString(stream).then(actual => {
+      assert.equal(actual, expected)
     })
+  })
 
-    it('should serializer literal with none default datatype', function (done) {
-      var graph = rdf.createGraph()
-      var triple = rdf.createTriple(
-        rdf.createNamedNode('http://example.org/subject'),
-        rdf.createNamedNode('http://example.org/predicate'),
-        rdf.createLiteral('test', null, rdf.createNamedNode('http://example.org/datatype')))
+  it('should handle Literals with Datatype', () => {
+    const quad = rdf.quad(
+      rdf.namedNode('http://example.org/subject'),
+      rdf.namedNode('http://example.org/predicate'),
+      rdf.literal('object', rdf.namedNode('http://example.org/datatype')))
 
-      graph.add(triple)
+    const input = rdf.dataset([quad]).toStream()
 
-      N3Serializer.serialize(graph).then(function (nTriples) {
-        assert.equal(nTriples.trim(), '<http://example.org/subject> <http://example.org/predicate> "test"^^<http://example.org/datatype>.')
+    const expected = '<http://example.org/subject> <http://example.org/predicate> "object"^^<http://example.org/datatype>.\n'
 
-        done()
-      }).catch(function (error) {
-        done(error)
-      })
+    const serializer = new N3Serializer()
+    const stream = serializer.import(input)
+
+    return streamToString(stream).then(actual => {
+      assert.equal(actual, expected)
     })
+  })
 
-    it('should serializer literal with datatype null', function (done) {
-      var graph = rdf.createGraph()
-      var triple = rdf.createTriple(
-        rdf.createNamedNode('http://example.org/subject'),
-        rdf.createNamedNode('http://example.org/predicate'),
-        rdf.createLiteral('test', null, rdf.createNamedNode('http://example.org/datatype')))
+  it('should combine triples for the same subject', () => {
+    const blankNode = rdf.blankNode()
 
-      triple.object.datatype = null
+    const quads = [
+      rdf.quad(
+        rdf.namedNode('http://example.org/subject'),
+        rdf.namedNode('http://example.org/predicateA'),
+        rdf.literal('a')),
+      rdf.quad(
+        rdf.namedNode('http://example.org/subject'),
+        rdf.namedNode('http://example.org/predicateB'),
+        rdf.literal('b')),
+      rdf.quad(
+        blankNode,
+        rdf.namedNode('http://example.org/predicateA'),
+        rdf.literal('a')),
+      rdf.quad(
+        blankNode,
+        rdf.namedNode('http://example.org/predicateB'),
+        rdf.literal('b'))
+    ]
 
-      graph.add(triple)
+    const input = rdf.dataset(quads).toStream()
 
-      N3Serializer.serialize(graph).then(function (nTriples) {
-        assert.equal(nTriples.trim(), '<http://example.org/subject> <http://example.org/predicate> "test".')
+    const expected = '' +
+      '<http://example.org/subject> <http://example.org/predicateA> "a";\n' +
+      '    <http://example.org/predicateB> "b".\n' +
+      '_:b1 <http://example.org/predicateA> "a";\n' +
+      '    <http://example.org/predicateB> "b".\n'
 
-        done()
-      }).catch(function (error) {
-        done(error)
-      })
+    const serializer = new N3Serializer()
+    const stream = serializer.import(input)
+
+    return streamToString(stream).then(actual => {
+      assert.equal(actual, expected)
+    })
+  })
+
+  it('should combine triples for the same subject and predicate', () => {
+    const quads = [
+      rdf.quad(
+        rdf.namedNode('http://example.org/subject'),
+        rdf.namedNode('http://example.org/predicate'),
+        rdf.literal('a')),
+      rdf.quad(
+        rdf.namedNode('http://example.org/subject'),
+        rdf.namedNode('http://example.org/predicate'),
+        rdf.literal('b'))
+    ]
+
+    const input = rdf.dataset(quads).toStream()
+
+    const expected = '<http://example.org/subject> <http://example.org/predicate> "a", "b".\n'
+
+    const serializer = new N3Serializer()
+    const stream = serializer.import(input)
+
+    return streamToString(stream).then(actual => {
+      assert.equal(actual, expected)
     })
   })
 })
