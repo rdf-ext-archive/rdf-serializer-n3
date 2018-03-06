@@ -1,6 +1,6 @@
 {
   "name": "rdf-serializer-n3",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "N3 serializer that implements the RDFJS Sink interface",
   "main": "index.js",
   "scripts": {
